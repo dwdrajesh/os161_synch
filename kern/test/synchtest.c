@@ -261,6 +261,7 @@ locktest(int nargs, char **args)
 		kprintf_t(".");
 		testlock = lock_create("testlock");
 		if (testlock == NULL) {
+			kprintf_t("-x-x- lock null\n");
 			panic("lt1: lock_create failed\n");
 		}
 		donesem = sem_create("donesem", 0);

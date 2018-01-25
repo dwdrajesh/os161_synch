@@ -72,11 +72,16 @@ void V(struct semaphore *);
  * The name field is for easier debugging. A copy of the name is
  * (should be) made internally.
  */
+
 struct lock {
         char *lk_name;
         HANGMAN_LOCKABLE(lk_hangman);   /* Deadlock detector hook. */
         // add what you need here
         // (don't forget to mark things volatile as needed)
+	volatile unsigned lock_count;
+	struct thread *lock_holder;
+	struct wchan *lock_wchan;
+	struct spinlock lock_splock;
 };
 
 struct lock *lock_create(const char *name);

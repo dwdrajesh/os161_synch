@@ -32,6 +32,7 @@
  * The specifications of the functions are in synch.h.
  */
 
+//#include <string.h>
 #include <types.h>
 #include <lib.h>
 #include <spinlock.h>
@@ -157,7 +158,15 @@ lock_create(const char *name)
 	HANGMAN_LOCKABLEINIT(&lock->lk_hangman, lock->lk_name);
 
 	// add stuff here as needed
-
+	lock->lock_count = 0;
+	lock->lock_holder = NULL;
+	
+	lock->lock_wchan = wchan_create(lock->lk_name);
+	if (lock->lock_wchan == NULL)
+{	
+	kfree(lock->lk_name);
+	kfree(lock);
+}
 	return lock;
 }
 
@@ -167,8 +176,9 @@ lock_destroy(struct lock *lock)
 	KASSERT(lock != NULL);
 
 	// add stuff here as needed
-
+	
 	kfree(lock->lk_name);
+	wchan_destroy(lock->lock_wchan);
 	kfree(lock);
 }
 
@@ -176,25 +186,39 @@ void
 lock_acquire(struct lock *lock)
 {
 	/* Call this (atomically) before waiting for a lock */
-	//HANGMAN_WAIT(&curthread->t_hangman, &lock->lk_hangman);
+	HANGMAN_WAIT(&curthread->t_hangman, &lock->lk_hangman);
 
 	// Write this
 
-	(void)lock;  // suppress warning until code gets written
-
+	//(void)lock;  // suppress warning until code gets written
+	spinlock_acquire(&lock->lock_splock);
+	while(lock->lock_count)
+{
+	wchan_sleep(lock->lock_wchan, &lock->lock_splock);
+}
+	lock->lock_count = 1;
+	lock->lock_holder = curthread;
+	spinlock_release(&lock->lock_splock);
 	/* Call this (atomically) once the lock is acquired */
-	//HANGMAN_ACQUIRE(&curthread->t_hangman, &lock->lk_hangman);
+	HANGMAN_ACQUIRE(&curthread->t_hangman, &lock->lk_hangman);
 }
 
 void
 lock_release(struct lock *lock)
 {
 	/* Call this (atomically) when the lock is released */
-	//HANGMAN_RELEASE(&curthread->t_hangman, &lock->lk_hangman);
+	HANGMAN_RELEASE(&curthread->t_hangman, &lock->lk_hangman);
 
 	// Write this
 
-	(void)lock;  // suppress warning until code gets written
+	//(void)lock;  // suppress warning until code gets written
+	spinlock_acquire(&lock->lock_splock);
+	KASSERT(lock->lock_holder == curthread);
+	KASSERT(lock->lock_count != 0);
+	lock->lock_count = 0;
+	lock->lock_holder = NULL;
+	spinlock_release(&lock->lock_splock);
+	
 }
 
 bool
@@ -202,9 +226,19 @@ lock_do_i_hold(struct lock *lock)
 {
 	// Write this
 
-	(void)lock;  // suppress warning until code gets written
+	//(void)lock;  // suppress warning until code gets written
+//	if ( (&curthread->t_hangman) == (&lock->lk_hangman) )
+	if (lock->lock_holder == curthread)
+{
+	//printf("-x-x-x- %s, %s\n", lock->thread_name, (char *)&curthread->t_name);
+	return true;
+}
+else
+{
+	//printf("-x-x-x- %s, %s\n", lock->thread_name, (char *)&curthread->t_name);
+	return false;
+}
 
-	return true; // dummy until code gets written
 }
 
 ////////////////////////////////////////////////////////////
