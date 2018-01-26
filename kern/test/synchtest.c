@@ -45,9 +45,11 @@
 
 #define CREATELOOPS		8
 #define NSEMLOOPS     63
-#define NLOCKLOOPS    120
+//#define NLOCKLOOPS    120
+#define NLOCKLOOPS    10
 #define NCVLOOPS      5
-#define NTHREADS      32
+//#define NTHREADS      32
+#define NTHREADS     4 
 #define SYNCHTEST_YIELDER_MAX 16
 
 static volatile unsigned long testval1;
@@ -174,7 +176,9 @@ locktestthread(void *junk, unsigned long num)
 	for (i=0; i<NLOCKLOOPS; i++) {
 		kprintf_t(".");
 		KASSERT(!(lock_do_i_hold(testlock)));
+		//secprintf(SECRET, "-x-x-x-Crossed do_i_hold: 177, %d..", "lt1", i);
 		lock_acquire(testlock);
+		//secprintf(SECRET, "-x-x-x-Crossed lock_acquire: 179.., %d", "lt1", i);
 		KASSERT(lock_do_i_hold(testlock));
 		random_yielder(4);
 
@@ -264,6 +268,10 @@ locktest(int nargs, char **args)
 			kprintf_t("-x-x- lock null\n");
 			panic("lt1: lock_create failed\n");
 		}
+		else
+		{
+			secprintf(SECRET, "-x-x-x-lock creation successfully!", "lt1");
+		}
 		donesem = sem_create("donesem", 0);
 		if (donesem == NULL) {
 			panic("lt1: sem_create failed\n");
@@ -281,6 +289,10 @@ locktest(int nargs, char **args)
 		result = thread_fork("synchtest", NULL, locktestthread, NULL, i);
 		if (result) {
 			panic("lt1: thread_fork failed: %s\n", strerror(result));
+		}
+		else
+		{
+			secprintf(SECRET, "-x-x-x-thread forked ...", "lt1");
 		}
 	}
 	for (i=0; i<NTHREADS; i++) {
