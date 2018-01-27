@@ -841,8 +841,27 @@ cmd_dispatch(char *cmd)
 			KASSERT(cmdtable[i].func!=NULL);
 
 			gettime(&before);
-
-			result = cmdtable[i].func(nargs, args);
+			
+			if (!strcmp(cmdtable[i].name, "cvtx"))
+			{
+				int temp;
+				int result_array[25]= {0};
+				for (temp = 0; temp < 25; temp++)
+				{
+					result_array[temp] = cmdtable[i].func(nargs, args); 
+				
+}
+				for (temp = 0; temp < 25; temp++)
+				{
+					result_array[temp] = cmdtable[i].func(nargs, args); 
+					kprintf("result_array[%d]: %d\n", temp, result_array[temp]);
+				}
+				result = 0;
+			}
+			else
+			{
+				result = cmdtable[i].func(nargs, args);
+			}
 
 			gettime(&after);
 			timespec_sub(&after, &before, &duration);

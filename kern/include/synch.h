@@ -121,9 +121,8 @@ struct cv {
         char *cv_name;
         // add what you need here
         // (don't forget to mark things volatile as needed)
-	struct lock *cv_lock;
 	struct wchan *cv_wchan;
-	struct spinlock *cv_splock;
+	struct spinlock cv_splock;
 };
 
 struct cv *cv_create(const char *name);
@@ -160,6 +159,10 @@ struct rwlock {
         char *rwlock_name;
         // add what you need here
         // (don't forget to mark things volatile as needed)
+	volatile int writer_count;
+	struct lock * rwlock_lock;
+	struct wchan * rwlock_wchan;
+	struct spinlock rwlock_splock;
 };
 
 struct rwlock * rwlock_create(const char *);
