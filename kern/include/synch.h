@@ -160,7 +160,8 @@ struct rwlock {
         // add what you need here
         // (don't forget to mark things volatile as needed)
 	volatile int writer_count;
-	struct lock * rwlock_lock;
+	struct lock * rwlock_wlock;
+	struct lock * rwlock_rlock;
 	struct wchan * rwlock_wchan;
 	struct spinlock rwlock_splock;
 };

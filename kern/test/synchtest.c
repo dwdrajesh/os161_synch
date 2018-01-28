@@ -564,7 +564,6 @@ cvtest(int nargs, char **args)
 	for (i=0; i<NTHREADS; i++) {
 		kprintf_t(".");
 		
-		kprintf_n("-x-x-x- Forking thread: %d...\n", i);
 		result = thread_fork("cvt1", NULL, cvtestthread, NULL, (long unsigned) i);
 		if (result) {
 			panic("cvt1: thread_fork failed: %s\n", strerror(result));
@@ -599,9 +598,7 @@ cvtest(int nargs, char **args)
  */
 
 #define NCVS 250
-//#define NCVS 25
 #define NLOOPS 40
-//#define NLOOPS 4
 static struct cv *testcvs[NCVS];
 static struct lock *testlocks[NCVS];
 static struct semaphore *gatesem;
