@@ -298,15 +298,18 @@ whalemating(int nargs, char **args) {
 			if (err) {
 				panic("sp1: thread_fork failed: (%s)\n", strerror(err));
 			}
+		kprintf_n("index: %d\n", index);
 		}
 	}
 
+	kprintf_n("P on startsem \n");
 	/* Wait for males and females to start. */
 	for (i = 0; i < NMATING * 2; i++) {
 		kprintf_t(".");
 		P(startsem);
 	}
 
+	kprintf_n("all threads created\n");
 	/* Make sure nothing is happening... */
 	loop_status = TEST161_SUCCESS;
 	for (i = 0; i < CHECK_TIMES && loop_status == TEST161_SUCCESS; i++) {
@@ -319,11 +322,14 @@ whalemating(int nargs, char **args) {
 		}
 		lock_release(testlock);
 	}
+	kprintf_n("checking failif\n");
 	if (failif((loop_status == TEST161_FAIL), "failed: uncoordinated matchmaking is occurring")) {
 		goto done;
 	}
-
+	
+	kprintf_n("creating matchmakers\n");
 	/* Create the matchmakers */
+	//for (j = 0; j < NMATING; j++) {
 	for (j = 0; j < NMATING; j++) {
 		kprintf_t(".");
 		int index = (2 * NMATING) + j;
