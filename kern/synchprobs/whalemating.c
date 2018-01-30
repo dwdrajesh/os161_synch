@@ -84,7 +84,7 @@ whalemating_cleanup() {
 void
 male(uint32_t index)
 {
-	(void)index;
+	//(void)index;
 	/*
 	 * Implement this function by calling male_start and male_end when
 	 * appropriate.
@@ -95,17 +95,25 @@ male(uint32_t index)
 	//increase own count first
 	male_count++;
 	//signal own cv to let others know
-	cv_signal(male_cv, m_lock);
-
-	// wait for other signals
-	cv_wait(female_cv, m_lock);
-	cv_wait(mm_cv, m_lock);
 	
+	while(!female_count )
+	{
+		// wait for other signals
+		cv_wait(female_cv, m_lock);
+	}
+
+	
+	while(!mm_count)
+	{
+		// wait for other signals
+		cv_wait(mm_cv, m_lock);
+	}
+	cv_signal(male_cv, m_lock);
 	// after signals received, call end
 	// and decrease count
 	kprintf_n("Male_end: %d\n", index);
-	male_end(index);
 	male_count--;
+	male_end(index);
 	lock_release(m_lock);
 	return;
 }
@@ -113,7 +121,7 @@ male(uint32_t index)
 void
 female(uint32_t index)
 {
-	(void)index;
+	//(void)index;
 	/*
 	 * Implement this function by calling female_start and female_end when
 	 * appropriate.
@@ -125,14 +133,22 @@ female(uint32_t index)
 	
 	female_count++;
 
+	while(!male_count )
+	{
+		// wait for other signals
+		cv_wait(male_cv, fem_lock);
+	}
+
+	while(!mm_count)
+	{
+		// wait for other signals
+		cv_wait(mm_cv, fem_lock);
+	}
 	cv_signal(female_cv, fem_lock);
 
-	cv_wait(male_cv, fem_lock);
-	cv_wait(mm_cv, fem_lock);
-
 	kprintf_n("Female_end: %d\n", index);
-	female_end(index);
 	female_count--;
+	female_end(index);
 	lock_release(fem_lock);
 
 	return;
@@ -141,7 +157,7 @@ female(uint32_t index)
 void
 matchmaker(uint32_t index)
 {
-	(void)index;
+	//(void)index;
 	/*
 	 * Implement this function by calling matchmaker_start and matchmaker_end
 	 * when appropriate.
@@ -153,13 +169,21 @@ matchmaker(uint32_t index)
 	
 	mm_count++;
 
+	while(!male_count)
+	{
+		// wait for other signals
+		cv_wait(female_cv, mm_lock);
+	}
+	while(!female_count )
+	{
+		// wait for other signals
+		cv_wait(female_cv, mm_lock);
+	}
 	cv_signal(mm_cv, mm_lock);
-
-	cv_wait(male_cv, mm_lock);
-	cv_wait(female_cv, mm_lock);
 
 	kprintf_n("Matchmaker_end: %d\n", index);
 	
+	mm_count--;
 	matchmaker_end(index);
 	lock_release(mm_lock);
 
