@@ -158,11 +158,11 @@ turnright(uint32_t direction, uint32_t index)
 	inQuadrant(map, index);
 	
 	P(leave_sem[direction]);
-
 	leaveIntersection(index, rt, direction);
-	V(sem_array[map]);
 
+	V(sem_array[map]);
 	V(leave_sem[direction]);
+
 	return;
 }
 void
@@ -178,19 +178,19 @@ gostraight(uint32_t direction, uint32_t index)
 	
 	kprintf_n("map[0]: %d, map[1]: %d\n", map[0], map[1]);
 	P(sem_array[map[0]]);
-	inQuadrant(map[0], index);
-	
 	P(sem_array[map[1]]);
 
+	inQuadrant(map[0], index);
 	inQuadrant(map[1], index);
+
 	V(sem_array[map[0]]);
 
 	P(leave_sem[direction]);
-
-	V(sem_array[map[1]]);
 	leaveIntersection(index, st, direction);
 
+	V(sem_array[map[1]]);
 	V(leave_sem[direction]);
+
 	return;
 }
 void
@@ -206,23 +206,23 @@ turnleft(uint32_t direction, uint32_t index)
 
 	kprintf_n("map[0]: %d, map[1]: %d, map[2]: %d\n", map[0], map[1], map[2]);
 	P(sem_array[map[0]]);
-	inQuadrant(map[0], index);
-	
 	P(sem_array[map[1]]);
-	inQuadrant(map[1], index);
-
-	V(sem_array[map[0]]);
-
 	P(sem_array[map[2]]);
 
+	inQuadrant(map[0], index);
+	inQuadrant(map[1], index);
+	V(sem_array[map[0]]);
 	inQuadrant(map[2], index);
 	V(sem_array[map[1]]);
 
+
+
+
 	P(leave_sem[direction]);
-
 	leaveIntersection(index, lt, direction);
-	V(sem_array[map[2]]);
 
+	V(sem_array[map[2]]);
 	V(leave_sem[direction]);
+
 	return;
 }
