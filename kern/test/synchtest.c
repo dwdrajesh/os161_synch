@@ -45,11 +45,9 @@
 
 #define CREATELOOPS		8
 #define NSEMLOOPS     63
-//#define NLOCKLOOPS    120
-#define NLOCKLOOPS    10
+#define NLOCKLOOPS    120
 #define NCVLOOPS      5
-//#define NTHREADS      32
-#define NTHREADS     4 
+#define NTHREADS      32
 #define SYNCHTEST_YIELDER_MAX 16
 
 static volatile unsigned long testval1;
@@ -176,9 +174,7 @@ locktestthread(void *junk, unsigned long num)
 	for (i=0; i<NLOCKLOOPS; i++) {
 		kprintf_t(".");
 		KASSERT(!(lock_do_i_hold(testlock)));
-		//secprintf(SECRET, "-x-x-x-Crossed do_i_hold: 177, %d..", "lt1", i);
 		lock_acquire(testlock);
-		//secprintf(SECRET, "-x-x-x-Crossed lock_acquire: 179.., %d", "lt1", i);
 		KASSERT(lock_do_i_hold(testlock));
 		random_yielder(4);
 
@@ -265,12 +261,7 @@ locktest(int nargs, char **args)
 		kprintf_t(".");
 		testlock = lock_create("testlock");
 		if (testlock == NULL) {
-			kprintf_t("-x-x- lock null\n");
 			panic("lt1: lock_create failed\n");
-		}
-		else
-		{
-			secprintf(SECRET, "-x-x-x-lock creation successfully!", "lt1");
 		}
 		donesem = sem_create("donesem", 0);
 		if (donesem == NULL) {
@@ -289,10 +280,6 @@ locktest(int nargs, char **args)
 		result = thread_fork("synchtest", NULL, locktestthread, NULL, i);
 		if (result) {
 			panic("lt1: thread_fork failed: %s\n", strerror(result));
-		}
-		else
-		{
-			secprintf(SECRET, "-x-x-x-thread forked ...", "lt1");
 		}
 	}
 	for (i=0; i<NTHREADS; i++) {
@@ -563,7 +550,6 @@ cvtest(int nargs, char **args)
 	testval1 = NTHREADS-1;
 	for (i=0; i<NTHREADS; i++) {
 		kprintf_t(".");
-		
 		result = thread_fork("cvt1", NULL, cvtestthread, NULL, (long unsigned) i);
 		if (result) {
 			panic("cvt1: thread_fork failed: %s\n", strerror(result));
@@ -619,7 +605,6 @@ sleepthread(void *junk1, unsigned long junk2)
 		kprintf_t(".");
 		for (i=0; i<NCVS; i++) {
 			lock_acquire(testlocks[i]);
-
 			random_yielder(4);
 			V(gatesem);
 			random_yielder(4);
@@ -652,15 +637,11 @@ wakethread(void *junk1, unsigned long junk2)
 			random_yielder(4);
 			P(gatesem);
 			random_yielder(4);
-		//kprintf_n("acquiring lock: %u\n", j);
 			lock_acquire(testlocks[i]);
-		//kprintf_n("acquired lock: %u\n", j);
 			random_yielder(4);
 			testval4--;
 			failif((testval4 != 0));
-		//kprintf_n("signalling cv: %u\n", j);
 			cv_signal(testcvs[i], testlocks[i]);
-		//kprintf_n("signalled cv: %u\n", j);
 			random_yielder(4);
 			lock_release(testlocks[i]);
 		}
