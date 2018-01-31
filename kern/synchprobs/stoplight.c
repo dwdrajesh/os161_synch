@@ -78,7 +78,7 @@
 #define lt 2
 
 struct semaphore* sem_array[4];
-struct semaphore* leave_sem;
+struct semaphore* leave_sem[4];
 
 void mapping(int index, int dir, int *map)
 {
@@ -102,6 +102,9 @@ void mapping(int index, int dir, int *map)
 		kprintf_n("-x-x-x-Error in map\n");
 		break;
 	}
+	kprintf_n("----x-x-x- coming direction: %d, going is: %d\n",
+		index, dir);
+	//kprintf_n("----x-x-x- map: %d, going is: %s\n");
 }
 
 void
@@ -120,8 +123,14 @@ stoplight_init() {
 	sem_array[3] = sem_create("temp3", 1);
 	KASSERT(sem_array[3] != NULL);
 
-	leave_sem= sem_create("temp1", 1);
-	KASSERT(leave_sem != NULL);
+	leave_sem[0] = sem_create("temp1", 1);
+	KASSERT(leave_sem[0] != NULL);
+	leave_sem[1] = sem_create("temp1", 1);
+	KASSERT(leave_sem[1] != NULL);
+	leave_sem[2] = sem_create("temp1", 1);
+	KASSERT(leave_sem[2] != NULL);
+	leave_sem[3] = sem_create("temp1", 1);
+	KASSERT(leave_sem[3] != NULL);
 	return;
 }
 
@@ -148,12 +157,12 @@ turnright(uint32_t direction, uint32_t index)
 	P(sem_array[map]);
 	inQuadrant(map, index);
 	
-	P(leave_sem);
+	P(leave_sem[direction]);
 
-	V(sem_array[map]);
 	leaveIntersection(index, rt, direction);
+	V(sem_array[map]);
 
-	V(leave_sem);
+	V(leave_sem[direction]);
 	return;
 }
 void
@@ -173,15 +182,15 @@ gostraight(uint32_t direction, uint32_t index)
 	
 	P(sem_array[map[1]]);
 
-	V(sem_array[map[0]]);
 	inQuadrant(map[1], index);
+	V(sem_array[map[0]]);
 
-	P(leave_sem);
+	P(leave_sem[direction]);
 
 	V(sem_array[map[1]]);
 	leaveIntersection(index, st, direction);
 
-	V(leave_sem);
+	V(leave_sem[direction]);
 	return;
 }
 void
@@ -200,20 +209,20 @@ turnleft(uint32_t direction, uint32_t index)
 	inQuadrant(map[0], index);
 	
 	P(sem_array[map[1]]);
+	inQuadrant(map[1], index);
 
 	V(sem_array[map[0]]);
-	inQuadrant(map[1], index);
 
 	P(sem_array[map[2]]);
 
-	V(sem_array[map[1]]);
 	inQuadrant(map[2], index);
+	V(sem_array[map[1]]);
 
-	P(leave_sem);
+	P(leave_sem[direction]);
 
-	V(sem_array[map[2]]);
 	leaveIntersection(index, lt, direction);
+	V(sem_array[map[2]]);
 
-	V(leave_sem);
+	V(leave_sem[direction]);
 	return;
 }
