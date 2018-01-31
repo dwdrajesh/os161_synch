@@ -72,9 +72,56 @@
 /*
  * Called by the driver during initialization.
  */
+	
+#define st 0
+#define rt 1
+#define lt 2
+
+struct semaphore* sem_array[4];
+struct semaphore* leave_sem;
+
+void mapping(int index, int dir, int *map)
+{
+	switch(dir)
+	{
+	case st:
+		*map = index;
+		*(map + 1) = (index + 3) % 4; 		
+		break;
+
+	case rt:
+		*map = index;
+		break;
+
+	case lt:
+		*map = index;
+		*(map + 1) = (index + 3) % 4; 		
+		*(map + 2) = (index + 2) % 4; 		
+		break;
+	default:
+		kprintf_n("-x-x-x-Error in map\n");
+		break;
+	}
+}
 
 void
 stoplight_init() {
+	//int i;
+	//for(i = 0; i < 4; i++)
+	//{
+		sem_array[0] = sem_create("temp", 1);
+		KASSERT(sem_array[0] != NULL);
+	//}
+
+	sem_array[1] = sem_create("temp1", 1);
+	KASSERT(sem_array[1] != NULL);
+	sem_array[2] = sem_create("temp2", 1);
+	KASSERT(sem_array[2] != NULL);
+	sem_array[3] = sem_create("temp3", 1);
+	KASSERT(sem_array[3] != NULL);
+
+	leave_sem= sem_create("temp1", 1);
+	KASSERT(leave_sem != NULL);
 	return;
 }
 
@@ -89,30 +136,84 @@ void stoplight_cleanup() {
 void
 turnright(uint32_t direction, uint32_t index)
 {
-	(void)direction;
-	(void)index;
+	//(void)direction;
+	//(void)index;
 	/*
 	 * Implement this function.
 	 */
+	int map = 0;
+	mapping(direction, rt, &map);
+	kprintf_n("map: %d\n", map); 
+	
+	P(sem_array[map]);
+	inQuadrant(map, index);
+	
+	P(leave_sem);
+
+	V(sem_array[map]);
+	leaveIntersection(index, rt, direction);
+
+	V(leave_sem);
 	return;
 }
 void
 gostraight(uint32_t direction, uint32_t index)
 {
-	(void)direction;
-	(void)index;
+	//(void)direction;
+	//(void)index;
 	/*
 	 * Implement this function.
 	 */
+	int map[2] = {0};
+	mapping(direction, st, map);
+	
+	kprintf_n("map[0]: %d, map[1]: %d\n", map[0], map[1]);
+	P(sem_array[map[0]]);
+	inQuadrant(map[0], index);
+	
+	P(sem_array[map[1]]);
+
+	V(sem_array[map[0]]);
+	inQuadrant(map[1], index);
+
+	P(leave_sem);
+
+	V(sem_array[map[1]]);
+	leaveIntersection(index, st, direction);
+
+	V(leave_sem);
 	return;
 }
 void
 turnleft(uint32_t direction, uint32_t index)
 {
-	(void)direction;
-	(void)index;
+	//(void)direction;
+	//(void)index;
 	/*
 	 * Implement this function.
 	 */
+	int map[3] = {0};
+	mapping(direction, lt, map);
+
+	kprintf_n("map[0]: %d, map[1]: %d, map[2]: %d\n", map[0], map[1], map[2]);
+	P(sem_array[map[0]]);
+	inQuadrant(map[0], index);
+	
+	P(sem_array[map[1]]);
+
+	V(sem_array[map[0]]);
+	inQuadrant(map[1], index);
+
+	P(sem_array[map[2]]);
+
+	V(sem_array[map[1]]);
+	inQuadrant(map[2], index);
+
+	P(leave_sem);
+
+	V(sem_array[map[2]]);
+	leaveIntersection(index, lt, direction);
+
+	V(leave_sem);
 	return;
 }

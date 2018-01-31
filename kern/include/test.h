@@ -142,7 +142,7 @@ void matchmaker_end(uint32_t);
 int whalemating(int, char **);
 
 void inQuadrant(int, uint32_t);
-void leaveIntersection(uint32_t);
+void leaveIntersection(uint32_t, int, int);
 int stoplight(int, char **);
 
 /*
@@ -168,6 +168,7 @@ void turnleft(uint32_t, uint32_t);
 void turnright(uint32_t, uint32_t);
 void stoplight_init(void);
 void stoplight_cleanup(void);
+void mapping(int index, int dir, int *map);
 
 #endif
 

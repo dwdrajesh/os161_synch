@@ -564,7 +564,7 @@ inQuadrant(int quadrant, uint32_t index) {
 }
 
 void
-leaveIntersection(uint32_t index) {
+leaveIntersection(uint32_t index, int d, int direction) {
 	random_yielder(PROBLEMS_MAX_YIELDER);
 	random_spinner(PROBLEMS_MAX_SPINNER);
 	lock_acquire(testlock);
@@ -588,6 +588,7 @@ leaveIntersection(uint32_t index) {
 	car_locations[index] = PASSED_CAR;
 	lock_release(testlock);
 	kprintf_n("%s left the intersection\n", curthread->t_name);
+	kprintf_n("was going %d, direction: %d\n", d, direction);
 }
 
 int stoplight(int nargs, char **args) {
