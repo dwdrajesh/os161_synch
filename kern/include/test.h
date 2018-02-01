@@ -169,6 +169,7 @@ void turnright(uint32_t, uint32_t);
 void stoplight_init(void);
 void stoplight_cleanup(void);
 void mapping(int index, int dir, int *map);
+void min(int len, int *arr);
 
 #endif
 

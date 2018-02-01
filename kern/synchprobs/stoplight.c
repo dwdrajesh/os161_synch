@@ -72,13 +72,41 @@
 /*
  * Called by the driver during initialization.
  */
-	
+
+/* My solution:
+1. One semaphore each for the 4 quadrants of the intersection, initialized with 1
+2. One semaphore(initialized with 1)/lock each for the exits
+3. Get the mapping by calling the mapping() function to find out which quadrants you need to go based on the direction you wanna go (left, right or straight)
+4. Sort the mapping array(For avoiding deadlock (See Dijkstra's solution to 'Dining Philosophers' problem' in Wikipedia
+5. Get all the required semaphores first before even entering the intersection
+6. Enter, exit and release semaphore in reverse order of acquiring them	
+*/
+
 #define st 0
 #define rt 1
 #define lt 2
 
 struct semaphore* sem_array[4];
 struct semaphore* leave_sem[4];
+
+void min(int len, int * arr)
+{
+	int i, j;
+	int temp;
+
+	for(i = 0; i < len - 1; i++)
+	{
+		for (j = i + 1; j < len; j++)
+		{
+			if (arr[j] < arr[i])
+			{
+				temp = arr[i];
+				arr[i] = arr[j];
+				arr[j] = temp;
+			}
+		}
+	} 
+}
 
 void mapping(int index, int dir, int *map)
 {
@@ -150,7 +178,7 @@ turnright(uint32_t direction, uint32_t index)
 	/*
 	 * Implement this function.
 	 */
-	int map = 0;
+	int map;
 	mapping(direction, rt, &map);
 	kprintf_n("map: %d\n", map); 
 	
@@ -174,11 +202,20 @@ gostraight(uint32_t direction, uint32_t index)
 	 * Implement this function.
 	 */
 	int map[2] = {0};
+
 	mapping(direction, st, map);
 	
+	int sort_map[2] = {0};
+	int i;
+	for(i = 0; i < 2; i++)
+	{
+		sort_map[i] = *(map + i);
+	} 
+	min(2, sort_map);
+
 	kprintf_n("map[0]: %d, map[1]: %d\n", map[0], map[1]);
-	P(sem_array[map[0]]);
-	P(sem_array[map[1]]);
+	P(sem_array[sort_map[0]]);
+	P(sem_array[sort_map[1]]);
 
 	inQuadrant(map[0], index);
 	inQuadrant(map[1], index);
@@ -204,10 +241,18 @@ turnleft(uint32_t direction, uint32_t index)
 	int map[3] = {0};
 	mapping(direction, lt, map);
 
+	int sort_map[3] = {0};
+	int i;
+	for(i = 0; i < 3; i++)
+	{
+		sort_map[i] = *(map + i);
+	} 
+	min(3, sort_map);
+
 	kprintf_n("map[0]: %d, map[1]: %d, map[2]: %d\n", map[0], map[1], map[2]);
-	P(sem_array[map[0]]);
-	P(sem_array[map[1]]);
-	P(sem_array[map[2]]);
+	P(sem_array[sort_map[0]]);
+	P(sem_array[sort_map[1]]);
+	P(sem_array[sort_map[2]]);
 
 	inQuadrant(map[0], index);
 	inQuadrant(map[1], index);
