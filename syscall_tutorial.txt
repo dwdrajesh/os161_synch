@@ -1,0 +1,37 @@
+
+
+Syscall in:
+-----------------------------------------------------------------------------------------------------------------
+Userland:
+	- Our C program (true) makes call to certain system calls, like exit(0), open(), etc.
+	- Userland program source files are in: ~/src/userland/bin/true
+	- Compiled userland executables are copied from ./src/build/userland/bin/true to ~/root/bin/true
+	- Check objdump of 'true' using: os161-objdump -D ~/root/bin/true > true.S
+	- Open true.S
+
+	Now,
+	- true.S (objdump output) shows all parts of this ELF executable
+	- It is called Disassembly and shows text section, main function, etc in assembly
+	- Go to <main> section: it calls <exit> label
+	- Go to <exit>: it calls _exit: _exit calls __syscall
+	- __syscall is defined in userspace in: ~src/build/userland/lib/libc/syscalls.S , where it calls 'syscall' kernel interrupt or in **. 
+	- Note that when __syscall calls kernel 'syscall', no argument for the file to be executed is passed. (Because the SYSCALL number for that program (reboot, time, etc.) is already copied into register 'v0' before calling 'syscall'. So, kernel can check v0 to know the actual call number.
+	- It copies the return code from 'syscall' kernel routine to 'errno' and returns 0 or -1 to userspace program
+** The system calls call __syscall userland/lib/libc/arch/mips/syscalls-mips.S
+
+-----------------------------------------------------------------------------------------------------------------
+Kernel:
+- The kernel 'syscall' is in kern/arch/sys161/main/start.S
+Note on kernel start:
+	- This file (start.S) has the '__start' routine which is also the entry point of the kernel and is called by the linker script (ld) at the beginning 
+	- Basic start flow: Linker -> calls '__start' (assembly label in start.S) -> calls kmain function -> calls main() function -> calls menu() function to print the main menu 
+
+- The __start routine in start.S calls the exception handler (ISR) called mips_general_handler
+- mips_general_handler is in: src/kern/arch/mips/locore/exception-mips1.S calls common_exception:
+- common_exception saves all registers into stack and jumps to function mibs_trap
+- mibs_trap is passed an argument 'struct trapframe' that has all the information but should be opposite of that in the stack (stack is popped and grows downward)
+- mibs_trap checks for the trapframe's tf->tf_cause and if it is == EX_SYS(meaning syscall), calls syscall() function by passing argument 'struct trapframe'.
+- syscall() : kern/arch/mips/syscall/syscall.c:
+	- switches to the particular sys_reboot() or sys_time(), etc. based on the tf->tf_v0.
+	- Need to add new switch cases in syscall.h for adding new syscalls.
+
