@@ -37,6 +37,7 @@
  */
 
 #include <spinlock.h>
+#include <synch.h>
 
 struct addrspace;
 struct thread;
@@ -59,6 +60,29 @@ struct vnode;
  * thread_switch needs to be able to fetch the current address space
  * without sleeping.
  */
+
+/* Need to add: index
+vnode
+synch prim
+mode read or write
+offset
+int refcount for fork: increase refcount every time fork is done; vfs_close only if refcount=0
+*/
+
+struct filehandle 
+{
+	int index;
+	struct vnode *vn;
+	struct filehandle * prev;
+	struct filehandle * next;
+};
+
+struct filetable
+{
+	int last;
+	struct filehandle * first;
+};
+
 struct proc {
 	char *p_name;			/* Name of this process */
 	struct spinlock p_lock;		/* Lock for this structure */
@@ -71,7 +95,12 @@ struct proc {
 	struct vnode *p_cwd;		/* current working directory */
 
 	/* add more material here as needed */
+	struct lock *p_slock; // sleep lock
+	struct filetable *ft;
 };
+
+int proc_create_ft(struct vnode *v);
+int proc_add_fh(struct vnode *v);
 
 /* This is the process structure for the kernel and for kernel-only threads. */
 extern struct proc *kproc;

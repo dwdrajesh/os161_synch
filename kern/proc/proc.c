@@ -44,10 +44,13 @@
 
 #include <types.h>
 #include <spl.h>
+#include <lib.h>
+#include <kern/fcntl.h>
 #include <proc.h>
 #include <current.h>
 #include <addrspace.h>
 #include <vnode.h>
+#include <vfs.h>
 
 /*
  * The process for the kernel; this holds all the kernel-only threads.
@@ -82,6 +85,9 @@ proc_create(const char *name)
 	/* VFS fields */
 	proc->p_cwd = NULL;
 
+	proc->p_slock = lock_create(proc->p_name);	
+	//proc->ft = kmalloc(sizeof(struct filetable));
+	proc->ft = NULL;
 	return proc;
 }
 
@@ -179,11 +185,37 @@ void
 proc_bootstrap(void)
 {
 	kproc = proc_create("[kernel]");
+	
+
 	if (kproc == NULL) {
 		panic("proc_create for kproc failed\n");
 	}
 }
 
+//void
+//proc_bootstrap(void)
+//{
+//	kprintf("-x-x-x- create proc wait\n");
+//	kproc = proc_create("[kernel]");
+//	
+//	// Open the console
+//	struct vnode *v = kmalloc(sizeof(struct vnode));
+//	char * console = NULL;
+//	console = kstrdup("con:");
+//	kprintf("-x-x-x- open wait\n");
+////	int result = vfs_open(console, O_RDWR, 0, &v);  
+//	kprintf("-x-x-x- open success, %s\n", console);
+//	kfree(console);
+////	if (result)
+////		panic("vfs_open for console failed\n");
+//	
+//	proc_create_ft(v);		
+//	kprintf("-x-x-x- create ft success\n");
+//
+//	if (kproc == NULL) {
+//		panic("proc_create for kproc failed\n");
+//	}
+//}
 /*
  * Create a fresh proc for use by runprogram.
  *
@@ -317,4 +349,65 @@ proc_setas(struct addrspace *newas)
 	proc->p_addrspace = newas;
 	spinlock_release(&proc->p_lock);
 	return oldas;
+}
+
+int proc_create_ft(struct vnode *v)
+{
+	//struct proc *proc = curproc;
+	
+//	spinlock_acquire(&proc->p_lock);
+	lock_acquire(curproc->p_slock);
+
+	struct filehandle * fh = kmalloc(sizeof(struct filehandle));
+	fh->index = 0;
+	fh->vn = v;
+	fh->prev = NULL;
+	fh->next = NULL;
+	
+	struct filetable * ft = kmalloc(sizeof(struct filetable));
+	ft->first = fh;
+	ft->last = 1;
+	
+//	spinlock_release(&proc->p_lock);
+	//spinlock_acquire(&curproc->p_lock);
+	curproc->ft = ft;
+	//spinlock_release(&curproc->p_lock);
+	lock_release(curproc->p_slock);
+
+	return fh->index;
+}
+
+int proc_add_fh(struct vnode *v)
+{
+	struct proc *proc = curproc;
+	
+	//lock_acquire(proc->p_slock);
+	//spinlock_release(&proc->p_lock);
+
+	struct filehandle * fh = kmalloc(sizeof(struct filehandle));
+	fh->vn = v;
+	fh->index = proc->ft->last;
+
+	
+	struct filehandle * fh_temp = proc->ft->first;
+	for (int i = 0; i < proc->ft->last; i++)
+	{
+		if (fh_temp->next == NULL)
+			{
+				fh->prev = fh_temp;
+				fh->next = NULL;
+				fh_temp->next = fh;
+			}
+		else
+			{
+				fh_temp = fh_temp->next;
+			}
+	}
+	
+	proc->ft->last++;
+	
+	//lock_release(proc->p_slock);
+	//spinlock_release(&proc->p_lock);
+
+	return fh->index;
 }
