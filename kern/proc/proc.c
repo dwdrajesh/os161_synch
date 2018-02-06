@@ -85,9 +85,26 @@ proc_create(const char *name)
 	/* VFS fields */
 	proc->p_cwd = NULL;
 
-	proc->p_slock = lock_create(proc->p_name);	
+	proc->ft_lock = lock_create(proc->p_name);	
 	//proc->ft = kmalloc(sizeof(struct filetable));
 	proc->ft = NULL;
+
+	// Open the console if its not the kernel
+	if (!strcmp(proc->p_name, "[kernel]"))
+		return proc;
+
+	struct vnode *v = kmalloc(sizeof(struct vnode));
+	char * console = NULL;
+	console = kstrdup("con:");
+	kprintf("-x-x-x- open wait\n");
+	int result = vfs_open(console, O_RDONLY, 0, &v);  
+	kprintf("-x-x-x- open success, %s\n", console);
+	kfree(console);
+	if (result)
+		panic("vfs_open for console failed\n");
+	
+	proc_create_ft(v);		
+	kprintf("-x-x-x- create ft success\n");
 	return proc;
 }
 
@@ -356,10 +373,15 @@ int proc_create_ft(struct vnode *v)
 	//struct proc *proc = curproc;
 	
 //	spinlock_acquire(&proc->p_lock);
-	lock_acquire(curproc->p_slock);
+	lock_acquire(curproc->ft_lock);
 
 	struct filehandle * fh = kmalloc(sizeof(struct filehandle));
+	fh->filelock = lock_create(curproc->p_name);
+	lock_acquire(fh->filelock);
 	fh->index = 0;
+	fh->mode = 0;
+	fh->offset = 0;
+	fh->refcount = 1;
 	fh->vn = v;
 	fh->prev = NULL;
 	fh->next = NULL;
@@ -372,19 +394,37 @@ int proc_create_ft(struct vnode *v)
 	//spinlock_acquire(&curproc->p_lock);
 	curproc->ft = ft;
 	//spinlock_release(&curproc->p_lock);
-	lock_release(curproc->p_slock);
+	lock_release(fh->filelock);
+	lock_release(curproc->ft_lock);
 
 	return fh->index;
 }
 
-int proc_add_fh(struct vnode *v)
+struct filehandle* proc_find_fd(int fd)
+{
+	struct filehandle * fh;
+	for (fh = curproc->ft->first; fh != NULL; fh = fh->next)
+	{
+		if (fh->index == fd)
+			return fh;
+	}
+	
+	return NULL;
+}
+
+int proc_add_fh(struct vnode *v, int mode)
 {
 	struct proc *proc = curproc;
 	
-	//lock_acquire(proc->p_slock);
+	//lock_acquire(proc->ft_lock);
 	//spinlock_release(&proc->p_lock);
 
 	struct filehandle * fh = kmalloc(sizeof(struct filehandle));
+	struct lock* filelock = lock_create(curproc->p_name);
+	fh->mode = mode;
+	fh->filelock = filelock;
+	fh->offset = 0;
+	fh->refcount++;
 	fh->vn = v;
 	fh->index = proc->ft->last;
 
@@ -406,7 +446,7 @@ int proc_add_fh(struct vnode *v)
 	
 	proc->ft->last++;
 	
-	//lock_release(proc->p_slock);
+	//lock_release(proc->ft_lock);
 	//spinlock_release(&proc->p_lock);
 
 	return fh->index;

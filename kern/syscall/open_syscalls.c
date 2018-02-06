@@ -27,42 +27,57 @@
  * SUCH DAMAGE.
  */
 
-#ifndef _SYSCALL_H_
-#define _SYSCALL_H_
-
-
-#include <cdefs.h> /* for __DEAD */
-struct trapframe; /* from <machine/trapframe.h> */
-
-/*
- * The system call dispatcher.
- */
-
-void syscall(struct trapframe *tf);
+#include <types.h>
+#include <lib.h>
+#include <copyinout.h>
+#include <syscall.h>
+#include <mips/trapframe.h>
+#include <vfs.h>
+#include <proc.h>
 
 /*
- * Support functions.
+ * Example system call: get the time of day.
  */
 
-/* Helper for fork(). You write this. */
-void enter_forked_process(struct trapframe *tf);
+// Rajesh: need to copy additional registers starting at sp+16 using copyin() function
 
-/* Enter user mode. Does not return. */
-__DEAD void enter_new_process(int argc, userptr_t argv, userptr_t env,
-		       vaddr_t stackptr, vaddr_t entrypoint);
+// TODO: vfs_open() returns number to identify the file on the inode table (global). Need to create another global file table that keeps track of the file (i.e. mapping from inode to int ) and is global from all processes. 
+// Also need to create a per-process file descriptor table
+// open() calls sys_open() calls vfs_open()
+// the return value from vfs_open, sys_open and open() will be same for now but dup() and fork() might modify the return value from sys_open for per-process
 
+#define PATHLENMAX 64
+// Change dbflags to change DB_VM
+//DEBUG(DB_VM, "VM free pages: %u\n", free_pages);
 
-/*
- * Prototypes for IN-KERNEL entry points for system call implementations.
- */
+int
+sys_open(struct trapframe *tf)
+{
+	char * filename = (char*) kmalloc(256);
+	int result = 0;
 
-int sys_reboot(int code);
-int sys___time(userptr_t user_seconds, userptr_t user_nanoseconds);
+	int len = 0;
+	result = copyinstr((const_userptr_t)(tf->tf_a0), filename, PATHLENMAX, (size_t*) &len);
+	
+	kprintf("-x-x-x-x-x---- copying from userspace, received string: %s, %d\n", filename, sizeof(tf));
 
+	struct vnode *v;
+	// Need to copy a1 first before using directly?
+	int mode;
+	result = copyin((const_userptr_t) tf->tf_a1, &mode, 4);
+	if (result) {
+		return result;
+	}
 
-///////////////////////// 
-////// Rajesh add: /////
-int sys_open(struct trapframe* tf);
-int sys_write(struct trapframe* tf);
-//int sys_close(int filehandle);
-#endif /* _SYSCALL_H_ */
+	result = vfs_open(filename, tf->tf_a1, 0, &v);
+	kprintf("-x-x-x-Opened vfs, mode: %d\n", tf->tf_a1);
+	if (result) {
+		return result;
+	}
+	
+	int rand = proc_add_fh(v, mode);
+
+	//int rand = random();
+	kprintf("-x-x-x-Returning: %d\n", rand);
+	return rand;
+}

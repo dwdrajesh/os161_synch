@@ -72,6 +72,10 @@ int refcount for fork: increase refcount every time fork is done; vfs_close only
 struct filehandle 
 {
 	int index;
+	int mode;
+	struct lock * filelock;
+	uint32_t offset;
+	uint16_t refcount;
 	struct vnode *vn;
 	struct filehandle * prev;
 	struct filehandle * next;
@@ -95,12 +99,13 @@ struct proc {
 	struct vnode *p_cwd;		/* current working directory */
 
 	/* add more material here as needed */
-	struct lock *p_slock; // sleep lock
+	struct lock *ft_lock; // sleep lock
 	struct filetable *ft;
 };
 
 int proc_create_ft(struct vnode *v);
-int proc_add_fh(struct vnode *v);
+int proc_add_fh(struct vnode *v, int mode);
+struct filehandle* proc_find_fd(int fd);
 
 /* This is the process structure for the kernel and for kernel-only threads. */
 extern struct proc *kproc;
